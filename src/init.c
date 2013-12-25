@@ -721,6 +721,12 @@ static enum parser_error parse_a_i(struct parser *p) {
 	return PARSE_ERROR_NONE;
 }
 
+/*
+ * Dec 2013 - randomise only this proportion of the artifacts
+ * (could be turned into an option)
+ */
+#define RAND_CHANCE 50
+
 static enum parser_error parse_a_w(struct parser *p) {
 	struct artifact *a = parser_priv(p);
 	const char *random;
@@ -730,9 +736,13 @@ static enum parser_error parse_a_w(struct parser *p) {
 	a->weight = parser_getint(p, "weight");
 	a->cost = parser_getint(p, "cost");
 
-	if (!parser_hasval(p, "randomise"))
-		a->random = TRUE;
-	else {
+	if (!parser_hasval(p, "randomise")) {
+		if (randint0(100) < RAND_CHANCE)
+			a->random = TRUE;
+		else
+			a->random = FALSE;
+	} else {
+		/* Don't mess with randomisation settings specified in artifact.txt */
 		random = parser_getsym(p, "randomise");
 		if (!my_stricmp(random, "no"))
 			a->random = FALSE;
