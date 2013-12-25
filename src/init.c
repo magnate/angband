@@ -885,7 +885,9 @@ static errr run_parse_a(struct parser *p) {
 }
 
 static errr finish_parse_a(struct parser *p) {
-	struct artifact *a, *n;
+	struct artifact *a, *n, *b;
+	int old_max;
+	size_t i;
 
 	/* scan the list for the max id */
 	z_info->a_max = 0;
@@ -896,6 +898,10 @@ static errr finish_parse_a(struct parser *p) {
 		a = a->next;
 	}
 
+    /* Dec 2013 - Generate "infinite" randarts */
+    old_max = z_info->a_max;
+    z_info->a_max = 999;
+
 	/* allocate the direct access list and copy the data to it */
 	a_info = mem_zalloc((z_info->a_max+1) * sizeof(*a));
 	for (a = parser_priv(p); a; a = n) {
@@ -905,9 +911,18 @@ static errr finish_parse_a(struct parser *p) {
 			a_info[a->aidx].next = &a_info[n->aidx];
 		else
 			a_info[a->aidx].next = NULL;
-
-		mem_free(a);
 	}
+
+    /* Copy existing artifacts into extra slots to retain frequencies, but
+     * ensure randomisability of the copies */
+    for (i = old_max; i < z_info->a_max; i++) {
+        memcpy(&a_info[i], &a_info[i - old_max], sizeof(*a));
+		b = &a_info[i];
+		b->random = TRUE;
+	}
+
+	mem_free(a);
+
 	z_info->a_max += 1;
 
 	parser_destroy(p);
